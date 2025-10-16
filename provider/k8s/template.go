@@ -42,7 +42,7 @@ func (p *Provider) templateHelpers() template.FuncMap {
 		},
 		"domains": func(app string, s manifest.Service) []string {
 			ds := []string{
-				p.ServiceHost(app, s),
+			p.ServiceHost(app, s),
 				// fmt.Sprintf("%s.%s.%s.local", s.Name, app, p.Name),
 			}
 			for _, d := range s.Domains {
