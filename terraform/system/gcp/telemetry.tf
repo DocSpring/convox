@@ -3,8 +3,8 @@
 
 locals {
   telemetry_map = {
-    buildkit_enabled = var.buildkit_enabled
-    cert_duration = var.cert_duration
+    buildkit_enabled    = var.buildkit_enabled
+    cert_duration       = var.cert_duration
     docker_hub_password = var.docker_hub_password
     docker_hub_username = var.docker_hub_username
     image = var.image
@@ -14,6 +14,7 @@ locals {
     node_disk = var.node_disk
     node_type = var.node_type
     preemptible = var.preemptible
+    private_api = var.private_api
     rack_name = var.rack_name
     region = var.region
     release = var.release
@@ -25,8 +26,8 @@ locals {
     }
 
   telemetry_default_map = {
-    buildkit_enabled = "false"
-    cert_duration = "2160h"
+    buildkit_enabled    = "false"
+    cert_duration       = "2160h"
     docker_hub_password = ""
     docker_hub_username = ""
     image = "convox/convox"
@@ -36,6 +37,7 @@ locals {
     node_disk = "100"
     node_type = "n1-standard-2"
     preemptible = "true"
+    private_api = "false"
     rack_name = ""
     region = "us-east1"
     release = ""

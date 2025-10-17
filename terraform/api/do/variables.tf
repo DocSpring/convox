@@ -71,3 +71,8 @@ variable "secret_key" {
 variable "syslog" {
   default = ""
 }
+
+variable "private_api" {
+  type    = bool
+  default = false
+}

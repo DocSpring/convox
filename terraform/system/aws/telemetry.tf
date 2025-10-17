@@ -64,6 +64,7 @@ locals {
     pod_identity_agent_enable = var.pod_identity_agent_enable
     pod_identity_agent_version = var.pod_identity_agent_version
     private = var.private
+    private_api = var.private_api
     private_eks_host = var.private_eks_host
     private_eks_pass = var.private_eks_pass
     private_eks_user = var.private_eks_user
@@ -154,6 +155,7 @@ locals {
     pod_identity_agent_enable = "false"
     pod_identity_agent_version = "v1.3.10-eksbuild.2"
     private = "true"
+    private_api = "false"
     private_eks_host = ""
     private_eks_pass = ""
     private_eks_user = ""
@@ -180,5 +182,4 @@ locals {
     vpc_cni_version = "v1.21.1-eksbuild.3"
     vpc_id = ""
     whitelist = "0.0.0.0/0"
-    }
 }

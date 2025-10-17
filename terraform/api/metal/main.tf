@@ -44,6 +44,7 @@ module "k8s" {
   rack                      = var.name
   release                   = var.release
   resolver                  = var.resolver
+  private_api               = var.private_api
 
   annotations = {
     "cert-manager.io/cluster-issuer" = "self-signed"
