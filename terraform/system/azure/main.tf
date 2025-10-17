@@ -68,5 +68,6 @@ module "rack" {
   telemetry_map           = local.telemetry_map
   telemetry_default_map   = local.telemetry_default_map
   whitelist               = split(",", var.whitelist)
+  private_api                          = var.private_api
   workspace               = module.cluster.workspace
 }

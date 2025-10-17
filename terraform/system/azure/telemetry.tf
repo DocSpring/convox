@@ -10,6 +10,7 @@ locals {
     k8s_version = var.k8s_version
     name = var.name
     node_type = var.node_type
+    private_api = var.private_api
     rack_name = var.rack_name
     region = var.region
     release = var.release
@@ -27,6 +28,7 @@ locals {
     k8s_version = "1.33"
     name = ""
     node_type = "Standard_D2_v3"
+    private_api = "false"
     rack_name = ""
     region = "eastus"
     release = ""

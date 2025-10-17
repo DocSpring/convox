@@ -76,3 +76,8 @@ variable "telemetry_default_map" {
 variable "whitelist" {
   default = ["0.0.0.0/0"]
 }
+
+variable "private_api" {
+  type    = bool
+  default = false
+}
