@@ -166,6 +166,7 @@ module "rack" {
   api_feature_gates                         = var.api_feature_gates
   build_disable_convox_resolver             = var.build_disable_convox_resolver
   build_node_enabled                        = var.build_node_enabled
+  disable_api_k8s_proxy                     = var.disable_api_k8s_proxy
   cluster                                   = module.cluster.id
   convox_domain_tls_cert_disable            = var.convox_domain_tls_cert_disable
   convox_rack_domain                        = var.convox_rack_domain
