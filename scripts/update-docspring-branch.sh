@@ -63,6 +63,24 @@ while IFS= read -r branch; do
       done
     fi
 
+    if [[ "${branch}" == "feat/added_private_api_setting" ]]; then
+      # For feat/added_private_api_setting: combine disable_api_k8s_proxy and private_api checks
+      if git diff --name-only --diff-filter=U | grep -q "terraform/api/k8s/main.tf"; then
+        echo "  Resolving kubernetes ingress count conflict in terraform/api/k8s/main.tf..."
+        # Replace the conflicting count line to check both variables
+        # From: count = var.disable_api_k8s_proxy ? 0 : 1  OR  count = var.private_api ? 0 : 1
+        # To: count = (var.disable_api_k8s_proxy || var.private_api) ? 0 : 1
+        sed -i '' '/^<<<<<<< HEAD$/,/^>>>>>>> feat\/added_private_api_setting$/{
+          /^<<<<<<< HEAD$/d
+          /count = var\.disable_api_k8s_proxy ? 0 : 1/c\
+  count = (var.disable_api_k8s_proxy || var.private_api) ? 0 : 1
+          /^=======$/,/^>>>>>>> feat\/added_private_api_setting$/d
+        }' terraform/api/k8s/main.tf
+
+        git add terraform/api/k8s/main.tf
+      fi
+    fi
+
     # Complete the merge
     git commit --no-edit
     echo "Conflicts resolved. Merge completed."
