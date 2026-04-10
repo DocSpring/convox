@@ -198,6 +198,7 @@ module "rack" {
   release                                   = local.release
   releases_to_retain_after_active           = var.releases_to_retain_after_active
   releases_to_retain_task_run_interval_hour = var.releases_to_retain_task_run_interval_hour
+  private_api                               = var.private_api
   ssl_ciphers                               = var.ssl_ciphers
   ssl_protocols                             = var.ssl_protocols
   subnets                                   = module.cluster.subnets

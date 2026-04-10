@@ -77,3 +77,8 @@ variable "syslog" {
 variable "workspace" {
   type = string
 }
+
+variable "private_api" {
+  type    = bool
+  default = false
+}
