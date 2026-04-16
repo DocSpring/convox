@@ -20,6 +20,7 @@ locals {
     coredns_version = var.coredns_version
     custom_provided_bucket = var.custom_provided_bucket
     deploy_extra_nlb = var.deploy_extra_nlb
+    disable_api_k8s_proxy = var.disable_api_k8s_proxy
     disable_convox_resolver = var.disable_convox_resolver
     disable_image_manifest_cache = var.disable_image_manifest_cache
     disable_public_access = var.disable_public_access
@@ -109,6 +110,7 @@ locals {
     coredns_version = "v1.12.4-eksbuild.1"
     custom_provided_bucket = ""
     deploy_extra_nlb = "false"
+    disable_api_k8s_proxy = "false"
     disable_convox_resolver = "false"
     disable_image_manifest_cache = "false"
     disable_public_access = "false"
@@ -178,4 +180,5 @@ locals {
     vpc_cni_version = "v1.20.4-eksbuild.1"
     vpc_id = ""
     whitelist = "0.0.0.0/0"
+    }
 }
