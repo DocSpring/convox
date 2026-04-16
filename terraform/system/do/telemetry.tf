@@ -3,36 +3,38 @@
 
 locals {
   telemetry_map = {
-    access_id           = var.access_id
-    buildkit_enabled    = var.buildkit_enabled
-    cert_duration       = var.cert_duration
+    access_id = var.access_id
+    buildkit_enabled = var.buildkit_enabled
+    cert_duration = var.cert_duration
     docker_hub_password = var.docker_hub_password
     docker_hub_username = var.docker_hub_username
-    high_availability   = var.high_availability
-    image               = var.image
-    k8s_version         = var.k8s_version
-    name                = var.name
-    node_type           = var.node_type
-    private_api         = var.private_api
-    rack_name           = var.rack_name
-    region              = var.region
-    registry_disk       = var.registry_disk
-    release             = var.release
-    secret_key          = var.secret_key
-    settings            = var.settings
-    syslog              = var.syslog
-    telemetry           = var.telemetry
+    fluentd_memory = var.fluentd_memory
+    high_availability = var.high_availability
+    image = var.image
+    k8s_version = var.k8s_version
+    name = var.name
+    node_type = var.node_type
+    private_api = var.private_api
+    rack_name = var.rack_name
+    region = var.region
+    registry_disk = var.registry_disk
+    release = var.release
+    secret_key = var.secret_key
+    settings = var.settings
+    syslog = var.syslog
+    telemetry = var.telemetry
     terraform_update_timeout = var.terraform_update_timeout
-    token               = var.token
-    whitelist           = var.whitelist
-  }
+    token = var.token
+    whitelist = var.whitelist
+    }
 
   telemetry_default_map = {
-    access_id           = ""
-    buildkit_enabled    = "false"
-    cert_duration       = "2160h"
+    access_id = ""
+    buildkit_enabled = "false"
+    cert_duration = "2160h"
     docker_hub_password = ""
     docker_hub_username = ""
+    fluentd_memory = "200Mi"
     high_availability = "true"
     image = "convox/convox"
     k8s_version = "1.34"
