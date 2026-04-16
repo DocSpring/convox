@@ -8,6 +8,7 @@ locals {
     cert_duration = var.cert_duration
     docker_hub_password = var.docker_hub_password
     docker_hub_username = var.docker_hub_username
+    fluentd_memory = var.fluentd_memory
     high_availability = var.high_availability
     idle_timeout = var.idle_timeout
     image = var.image
@@ -22,6 +23,7 @@ locals {
     nvidia_device_plugin_enable = var.nvidia_device_plugin_enable
     nvidia_device_time_slicing_replicas = var.nvidia_device_time_slicing_replicas
     pdb_default_min_available_percentage = var.pdb_default_min_available_percentage
+    private_api = var.private_api
     rack_name = var.rack_name
     region = var.region
     release = var.release
@@ -41,6 +43,7 @@ locals {
     cert_duration = "2160h"
     docker_hub_password = ""
     docker_hub_username = ""
+    fluentd_memory = "200Mi"
     high_availability = "true"
     idle_timeout = "4"
     image = "convox/convox"
@@ -55,6 +58,7 @@ locals {
     nvidia_device_plugin_enable = "false"
     nvidia_device_time_slicing_replicas = "0"
     pdb_default_min_available_percentage = "50"
+    private_api = "false"
     rack_name = ""
     region = "eastus"
     release = ""
