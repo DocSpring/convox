@@ -58,6 +58,7 @@ module "k8s" {
   release                   = var.release
   replicas                  = var.high_availability ? 2 : 1
   resolver                  = var.resolver
+  private_api               = var.private_api
 
   labels = {
     "aadpodidbinding" : "api"

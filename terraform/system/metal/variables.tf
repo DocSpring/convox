@@ -43,3 +43,8 @@ variable "fluentd_memory" {
 variable "whitelist" {
   default = "0.0.0.0/0"
 }
+
+variable "private_api" {
+  type    = bool
+  default = false
+}

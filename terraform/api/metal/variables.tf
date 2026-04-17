@@ -47,3 +47,8 @@ variable "secret" {
 variable "syslog" {
   default = ""
 }
+
+variable "private_api" {
+  type    = bool
+  default = false
+}
