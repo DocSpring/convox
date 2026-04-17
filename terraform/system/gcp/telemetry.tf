@@ -7,7 +7,6 @@ locals {
     cert_duration = var.cert_duration
     docker_hub_password = var.docker_hub_password
     docker_hub_username = var.docker_hub_username
-    fluentd_memory = var.fluentd_memory
     image = var.image
     k8s_version = var.k8s_version
     name = var.name
@@ -30,7 +29,6 @@ locals {
     cert_duration = "2160h"
     docker_hub_password = ""
     docker_hub_username = ""
-    fluentd_memory = "200Mi"
     image = "convox/convox"
     k8s_version = "1.33"
     name = ""
