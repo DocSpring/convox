@@ -16,6 +16,7 @@ module "k8s" {
     kubectl    = kubectl
   }
 
+  disable_api_k8s_proxy           = var.disable_api_k8s_proxy
   buildkit_enabled                = var.buildkit_enabled
   build_node_enabled              = var.build_node_enabled
   buildkit_host_path_cache_enable = var.buildkit_host_path_cache_enable
