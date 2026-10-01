@@ -48,5 +48,13 @@ module "k8s" {
 
   env = {
     AWS_REGION = data.aws_region.current.name
+
+    # fluentd-kubernetes-daemonset sets LD_PRELOAD="" (jemalloc disabled since
+    # fluent/fluentd-kubernetes-daemonset#1512, for a fluent-plugin-systemd
+    # crash that was fixed in plugin 1.1.0, see #1517). On glibc malloc the
+    # worker keeps memory after every log burst (fluent/fluentd#5125, #1657).
+    # The library is in the image. It needs a kernel with 4K pages (amd64, and
+    # EKS arm64 AMIs); it crashes on 64K-page kernels (fluent/fluentd#4328).
+    LD_PRELOAD = "/usr/lib/libjemalloc.so.2"
   }
 }
