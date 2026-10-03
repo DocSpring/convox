@@ -284,6 +284,7 @@ module "rack" {
   build_archs                               = local.build_archs
   build_node_enabled                        = var.build_node_enabled
   buildkit_host_path_cache_enable           = var.buildkit_host_path_cache_enable
+  disable_api_k8s_proxy                     = var.disable_api_k8s_proxy
   cluster                                   = module.cluster.id
   convox_domain_tls_cert_disable            = var.convox_domain_tls_cert_disable
   convox_rack_domain                        = var.convox_rack_domain

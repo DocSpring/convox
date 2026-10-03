@@ -3,6 +3,11 @@ variable "api_feature_gates" {
   default = ""
 }
 
+variable "disable_api_k8s_proxy" {
+  default = false
+  type    = bool
+}
+
 variable "buildkit_enabled" {
   default = false
 }
