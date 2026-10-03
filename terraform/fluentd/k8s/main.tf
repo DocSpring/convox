@@ -127,6 +127,20 @@ resource "kubernetes_daemonset" "fluentd" {
             value = sha256(var.target)
           }
 
+          # Lets fluent-plugin-kubernetes_metadata_filter list and watch only
+          # the pods on this node instead of every pod in the cluster. The
+          # plugin warns at startup when this is unset. fluentd's supervisor
+          # also runs plugin configure (and so the watch threads), so without
+          # it each fluentd pod held two cluster-wide pod caches.
+          env {
+            name = "K8S_NODE_NAME"
+            value_from {
+              field_ref {
+                field_path = "spec.nodeName"
+              }
+            }
+          }
+
           # Same configMap-staleness rolling-update pattern as TARGET_HASH
           # above. fluent.conf and containers.conf are mounted into the pod
           # via the kubernetes_config_map.fluentd resource at lines 40-51;
