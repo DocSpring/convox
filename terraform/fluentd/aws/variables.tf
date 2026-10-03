@@ -43,4 +43,13 @@ variable "oidc_sub" {
 
 variable "syslog" {
   default = ""
+
+  # DocSpring fork: the fluentd image in main.tf (fluent/fluentd-kubernetes-daemonset)
+  # has no `syslog` output plugin. That plugin only exists in convox/fluentd. With an
+  # endpoint set, target.conf uses `@type syslog`, fluentd fails to start and the
+  # rollout crash-loops while `convox rack update` still reports success.
+  validation {
+    condition     = var.syslog == ""
+    error_message = "The syslog rack param isn't supported with this fork's fluentd image (no syslog output plugin). Use convox/fluentd 1.19+ with the syslog plugin before setting it."
+  }
 }
