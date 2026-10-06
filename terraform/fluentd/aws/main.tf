@@ -18,8 +18,17 @@ module "k8s" {
   fluentd_disable = var.fluentd_disable
   fluentd_memory  = var.fluentd_memory
 
-  cluster   = var.cluster
-  image     = "convox/fluentd:1.13-all"
+  cluster = var.cluster
+  # convox/fluentd:1.13-all runs fluentd 1.7.4 with kubernetes_metadata_filter
+  # 2.3.0, which reads the service account token once at startup. EKS 1.34+
+  # expires that token after 24 hours, after which every pod lookup gets a 401,
+  # records lose their labels, and the rewrite_tag_filter rules drop every app
+  # log line without an error. kubernetes_metadata_filter 2.11+ recreates its
+  # client (re-reading the token) on 401. This image has fluentd 1.19.3,
+  # kubernetes_metadata_filter 3.8, fluent-plugin-cloudwatch-logs 0.15 and the
+  # other plugins the config uses (multi-format-parser, parser-cri,
+  # rewrite-tag-filter, record-modifier). Pinned by digest (amd64 + arm64).
+  image     = "fluent/fluentd-kubernetes-daemonset:v1.19.3-debian-cloudwatch-1.1@sha256:268c29d7908ce779e200cf08d26e3ab52c0eb965fdae51e8d424730c0e311166"
   namespace = var.namespace
   rack      = var.rack
 
@@ -39,5 +48,13 @@ module "k8s" {
 
   env = {
     AWS_REGION = data.aws_region.current.name
+
+    # fluentd-kubernetes-daemonset sets LD_PRELOAD="" (jemalloc disabled since
+    # fluent/fluentd-kubernetes-daemonset#1512, for a fluent-plugin-systemd
+    # crash that was fixed in plugin 1.1.0, see #1517). On glibc malloc the
+    # worker keeps memory after every log burst (fluent/fluentd#5125, #1657).
+    # The library is in the image. It needs a kernel with 4K pages (amd64, and
+    # EKS arm64 AMIs); it crashes on 64K-page kernels (fluent/fluentd#4328).
+    LD_PRELOAD = "/usr/lib/libjemalloc.so.2"
   }
 }
