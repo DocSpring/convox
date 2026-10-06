@@ -49,6 +49,31 @@ module "nginx" {
   ssl_protocols             = var.ssl_protocols
 }
 
+# Access logs keep query strings and referers for years, so mask secret query
+# parameters before they're logged: $redacted_args and $redacted_referer (used in
+# log-format.txt) replace the value of token_secret, api_token_secret and password
+# with FILTERED. Each map masks one occurrence, so two chained maps cover two.
+locals {
+  redact_log_secrets_snippet = <<-EOT
+    map $args $redacted_args_1 {
+      default $args;
+      "~^(?<redact_pre>.*?)(?<redact_key>token_secret|api_token_secret|password)=(?!FILTERED)[^&]*(?<redact_post>.*)$" "$${redact_pre}$${redact_key}=FILTERED$${redact_post}";
+    }
+    map $redacted_args_1 $redacted_args {
+      default $redacted_args_1;
+      "~^(?<redact_pre>.*?)(?<redact_key>token_secret|api_token_secret|password)=(?!FILTERED)[^&]*(?<redact_post>.*)$" "$${redact_pre}$${redact_key}=FILTERED$${redact_post}";
+    }
+    map $http_referer $redacted_referer_1 {
+      default $http_referer;
+      "~^(?<redact_pre>.*?)(?<redact_key>token_secret|api_token_secret|password)=(?!FILTERED)[^&]*(?<redact_post>.*)$" "$${redact_pre}$${redact_key}=FILTERED$${redact_post}";
+    }
+    map $redacted_referer_1 $redacted_referer {
+      default $redacted_referer_1;
+      "~^(?<redact_pre>.*?)(?<redact_key>token_secret|api_token_secret|password)=(?!FILTERED)[^&]*(?<redact_post>.*)$" "$${redact_pre}$${redact_key}=FILTERED$${redact_post}";
+    }
+  EOT
+}
+
 resource "kubernetes_config_map" "nginx-configuration" {
   metadata {
     namespace = var.namespace
@@ -60,6 +85,7 @@ resource "kubernetes_config_map" "nginx-configuration" {
       "proxy-body-size"           = "0"
       "use-proxy-protocol"        = var.proxy_protocol ? "true" : "false"
       "log-format-upstream"       = file("${path.module}/log-format.txt")
+      "http-snippet"              = local.redact_log_secrets_snippet
       "ssl-ciphers"               = var.ssl_ciphers == "" ? null : var.ssl_ciphers
       "ssl-protocols"             = var.ssl_protocols == "" ? null : var.ssl_protocols
       "allow-snippet-annotations" = "true"
