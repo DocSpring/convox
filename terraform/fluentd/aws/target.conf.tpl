@@ -17,6 +17,18 @@
         pattern  /^\{/
         tag $${tag}.access
       </rule>
+      # Everything else ingress-nginx writes: nginx's error log ("upstream timed out",
+      # "connect() failed", ...) and the controller's own logs (reloads, certificates,
+      # endpoints). rewrite_tag_filter drops records that match no rule, so without this
+      # rule these lines were silently discarded. The new tag matches neither block above,
+      # so they go to the store below like any other system service:
+      # /convox/<rack>/system, stream service/ingress-nginx/<pod> (as before 3.14.0).
+      <rule>
+        key log
+        pattern  /^\{/
+        invert true
+        tag $${tag}.other
+      </rule>
     </match>
 
     <match rack.*.app.system.service.ingress-nginx.access>
