@@ -531,6 +531,8 @@ locals {
 }
 
 resource "kubernetes_ingress_v1" "api" {
+  count = var.private_api ? 0 : 1
+
   wait_for_load_balancer = true
 
   metadata {
@@ -577,7 +579,7 @@ resource "kubernetes_ingress_v1" "api" {
 }
 
 resource "kubernetes_ingress_v1" "kubernetes" {
-  count = var.disable_api_k8s_proxy ? 0 : 1
+  count = (var.disable_api_k8s_proxy || var.private_api) ? 0 : 1
 
   wait_for_load_balancer = true
 
