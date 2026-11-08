@@ -253,6 +253,11 @@ resource "kubernetes_deployment" "api" {
           }
 
           env {
+            name  = "DISABLE_API_K8S_PROXY"
+            value = var.disable_api_k8s_proxy
+          }
+
+          env {
             name  = "CONVOX_DOMAIN_TLS_CERT_DISABLE"
             value = var.convox_domain_tls_cert_disable
           }
@@ -501,11 +506,14 @@ resource "kubernetes_service" "api" {
       protocol    = "TCP"
     }
 
-    port {
-      name        = "kubernetes"
-      port        = 8001
-      target_port = 8001
-      protocol    = "TCP"
+    dynamic "port" {
+      for_each = var.disable_api_k8s_proxy ? [] : [1]
+      content {
+        name        = "kubernetes"
+        port        = 8001
+        target_port = 8001
+        protocol    = "TCP"
+      }
     }
 
     selector = {
@@ -569,6 +577,8 @@ resource "kubernetes_ingress_v1" "api" {
 }
 
 resource "kubernetes_ingress_v1" "kubernetes" {
+  count = var.disable_api_k8s_proxy ? 0 : 1
+
   wait_for_load_balancer = true
 
   metadata {

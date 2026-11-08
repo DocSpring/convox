@@ -2,6 +2,11 @@ variable "access_log_retention_in_days" {
   default = "7"
 }
 
+variable "disable_api_k8s_proxy" {
+  default = false
+  type    = bool
+}
+
 variable "additional_node_groups_config" {
   type    = string
   default = ""
