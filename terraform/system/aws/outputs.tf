@@ -2,6 +2,12 @@ output "api" {
   value = module.rack.api
 }
 
+# The rack API password, known at plan time even when the router's domain (part of api) is not.
+output "api_password" {
+  value     = module.rack.api_password
+  sensitive = true
+}
+
 output "cluster" {
   value = module.cluster
 }
