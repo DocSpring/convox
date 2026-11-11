@@ -76,8 +76,14 @@ func (c *EventController) Add(obj interface{}) error {
 		c.Provider.nc.Add(e.InvolvedObject.Name)
 	}
 
-	if e.LastTimestamp.Before(&c.start) {
+	ts := eventTime(e)
+
+	if ts.Before(c.start.Time) {
 		return nil
+	}
+
+	if err := c.logClusterEvent(e, ts); err != nil {
+		return errors.WithStack(err)
 	}
 
 	o := e.InvolvedObject
@@ -94,7 +100,7 @@ func (c *EventController) Add(obj interface{}) error {
 			return errors.WithStack(err)
 		}
 
-		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, e.LastTimestamp.Time, e.Message); err != nil {
+		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, ts, e.Message); err != nil {
 			return errors.WithStack(err)
 		}
 	case "apps/v1/ReplicaSet":
@@ -106,7 +112,7 @@ func (c *EventController) Add(obj interface{}) error {
 			return errors.WithStack(err)
 		}
 
-		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, e.LastTimestamp.Time, e.Message); err != nil {
+		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, ts, e.Message); err != nil {
 			return errors.WithStack(err)
 		}
 	case "atom.convox.com/v1/Atom":
@@ -118,7 +124,7 @@ func (c *EventController) Add(obj interface{}) error {
 			return errors.WithStack(err)
 		}
 
-		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, fmt.Sprintf("atom/%s", strings.ReplaceAll(e.InvolvedObject.Name, ".", "/")), e.LastTimestamp.Time, fmt.Sprintf("%s: %s", e.Reason, e.Message)); err != nil {
+		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, fmt.Sprintf("atom/%s", strings.ReplaceAll(e.InvolvedObject.Name, ".", "/")), ts, fmt.Sprintf("%s: %s", e.Reason, e.Message)); err != nil {
 			return errors.WithStack(err)
 		}
 	case "autoscaling/v2beta2/HorizontalPodAutoscaler":
@@ -130,7 +136,7 @@ func (c *EventController) Add(obj interface{}) error {
 			return errors.WithStack(err)
 		}
 
-		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, e.LastTimestamp.Time, e.Message); err != nil {
+		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, ts, e.Message); err != nil {
 			return errors.WithStack(err)
 		}
 	case "autoscaling/v2/HorizontalPodAutoscaler":
@@ -142,7 +148,7 @@ func (c *EventController) Add(obj interface{}) error {
 			return errors.WithStack(err)
 		}
 
-		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, e.LastTimestamp.Time, e.Message); err != nil {
+		if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, ts, e.Message); err != nil {
 			return errors.WithStack(err)
 		}
 	case "v1/ConfigMap":
@@ -158,12 +164,10 @@ func (c *EventController) Add(obj interface{}) error {
 				return errors.WithStack(err)
 			}
 
-			if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, e.LastTimestamp.Time, e.Message); err != nil {
+			if err := c.Provider.systemLog(c.Provider.namespaceTid(o.Namespace, app), app, o.Name, ts, e.Message); err != nil {
 				return errors.WithStack(err)
 			}
 		}
-	default:
-		fmt.Printf("  unhandled event: %s: %s\n", kind, e.Message)
 	}
 
 	return nil
@@ -173,8 +177,86 @@ func (c *EventController) Delete(obj interface{}) error {
 	return nil
 }
 
+// Update logs an event again when it recurs. Kubernetes doesn't create a new Event for a repeat (a readiness probe
+// that keeps failing, a pod that keeps crashing): it raises the existing one's count. Re-lists and resyncs deliver
+// updates with the same count, which are skipped.
 func (c *EventController) Update(prev, cur interface{}) error {
-	return nil
+	pe, err := assertEvent(prev)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	ce, err := assertEvent(cur)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if eventCount(ce) <= eventCount(pe) {
+		return nil
+	}
+
+	ts := eventTime(ce)
+
+	if ts.Before(c.start.Time) {
+		return nil
+	}
+
+	return errors.WithStack(c.logClusterEvent(ce, ts))
+}
+
+// logClusterEvent writes one line per event, and per recurrence, for every kind of object in every namespace, to the
+// rack's system log (stream k8s-events/<namespace>). Kubernetes keeps events for an hour, and the per-app copies above
+// cover only some kinds in app namespaces and only an event's first occurrence.
+func (c *EventController) logClusterEvent(e *ac.Event, ts time.Time) error {
+	o := e.InvolvedObject
+
+	ns := o.Namespace
+	if ns == "" {
+		ns = e.Namespace
+	}
+
+	line := fmt.Sprintf("type=%s reason=%s kind=%s namespace=%s name=%s count=%d source=%s message=%q",
+		e.Type, e.Reason, o.Kind, o.Namespace, o.Name, eventCount(e), eventSource(e), e.Message)
+
+	return errors.WithStack(c.Provider.Engine.Log("system", fmt.Sprintf("k8s-events/%s", ns), ts, line))
+}
+
+// eventTime is when the event last happened. Events written through the events.k8s.io API (the scheduler's
+// FailedScheduling, for example) leave lastTimestamp empty and record eventTime and series instead.
+func eventTime(e *ac.Event) time.Time {
+	switch {
+	case !e.LastTimestamp.IsZero():
+		return e.LastTimestamp.Time
+	case e.Series != nil && !e.Series.LastObservedTime.IsZero():
+		return e.Series.LastObservedTime.Time
+	case !e.EventTime.IsZero():
+		return e.EventTime.Time
+	default:
+		return e.CreationTimestamp.Time
+	}
+}
+
+// eventCount is how many times the event has happened: count, or series.count for events.k8s.io events.
+func eventCount(e *ac.Event) int32 {
+	n := e.Count
+
+	if e.Series != nil && e.Series.Count > n {
+		n = e.Series.Count
+	}
+
+	if n < 1 {
+		n = 1
+	}
+
+	return n
+}
+
+func eventSource(e *ac.Event) string {
+	if e.ReportingController != "" {
+		return e.ReportingController
+	}
+
+	return e.Source.Component
 }
 
 func assertEvent(v interface{}) (*ac.Event, error) {
