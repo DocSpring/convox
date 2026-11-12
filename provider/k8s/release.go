@@ -924,19 +924,23 @@ func (p *Provider) releaseTemplateHTTPProxyCore(a *structs.App, ss manifest.Serv
 		}
 
 		convoxDomainTLS := !p.ConvoxDomainTLSCertDisable && (!internal || p.ContourInternalTLS)
+		// Custom domains get TLS whatever convox_domain_tls_cert_disable says, as they do on nginx: that parameter is
+		// only about the rack's default *.convox.cloud host.
+		domainTLS := !internal || p.ContourInternalTLS
 
 		certIssuer := "letsencrypt"
 		if internal && p.ContourInternalTLS {
 			certIssuer = "self-signed"
 		}
 
-		if s.Certificate.Id == "" && convoxDomainTLS && !nginxOwnsCerts {
+		if s.Certificate.Id == "" && (convoxDomainTLS || (len(s.Domains) > 0 && domainTLS)) && !nginxOwnsCerts {
 			certParams := map[string]interface{}{
 				"App":          a.Name,
 				"CertDuration": s.Certificate.Duration,
 				"CertIssuer":   certIssuer,
-				"HasDomains":   len(s.Domains) > 0,
+				"HasDomains":   len(s.Domains) > 0 && domainTLS,
 				"Host":         p.ServiceHost(a.Name, s),
+				"HostCert":     convoxDomainTLS,
 				"Namespace":    p.AppNamespace(a.Name),
 				"Service":      s,
 			}
@@ -979,6 +983,7 @@ func (p *Provider) releaseTemplateHTTPProxyCore(a *structs.App, ss manifest.Serv
 			"App":              a.Name,
 			"BackendProtocol":  contourBackendProtocol(s.Port.Scheme),
 			"ConvoxDomainTLS":  convoxDomainTLS,
+			"DomainTLS":        domainTLS,
 			"Host":             p.ServiceHost(a.Name, s),
 			"Idles":            common.DefaultBool(opts.Idle, idles),
 			"IngressClassName": ingressClassName,

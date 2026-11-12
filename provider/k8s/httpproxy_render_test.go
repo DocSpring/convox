@@ -97,6 +97,7 @@ func TestRenderTemplateCertificateIssuer(t *testing.T) {
 		"App":        "test-app",
 		"HasDomains": false,
 		"Host":       "web.test-app.example.com",
+		"HostCert":   true,
 		"Namespace":  "ns",
 		"Service":    manifest.Service{Name: "web"},
 	}
@@ -116,6 +117,14 @@ func TestRenderTemplateCertificateIssuer(t *testing.T) {
 	dom, err := p.RenderTemplate("app/certificate", withDomains)
 	require.NoError(t, err)
 	require.Equal(t, 2, strings.Count(string(dom), "rotationPolicy: Never"), "cert-manager defaults this to Always from v1.18")
+
+	// convox_domain_tls_cert_disable: no certificate for the default host, the custom domains' one still
+	withDomains["HostCert"] = false
+	domOnly, err := p.RenderTemplate("app/certificate", withDomains)
+	require.NoError(t, err)
+	require.Equal(t, 1, strings.Count(string(domOnly), "kind: Certificate"))
+	require.Contains(t, string(domOnly), "name: cert-web-domains")
+	require.NotContains(t, string(domOnly), "---")
 
 	base["CertIssuer"] = "self-signed"
 	ss, err := p.RenderTemplate("app/certificate", base)
