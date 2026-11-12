@@ -355,6 +355,10 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 	}
 	timeout := int32(promoteTimeout)
 
+	if err := p.releaseAdoptIngressCertificates(app); err != nil {
+		return err
+	}
+
 	if err := p.Apply(p.AppNamespace(app), "app", PromoteApplyConfig{
 		Version:      id,
 		Data:         tdata,

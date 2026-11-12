@@ -13,7 +13,7 @@ The `contour_migration` parameter lets you switch [`router_type`](/configuration
 
 While `contour_migration` is `true`, the Rack installs Contour alongside nginx, whichever `router_type` is set, and every App deploy renders both an nginx Ingress and a Contour HTTPProxy for each Service. Both controllers can then serve every App, so moving the load balancer from one to the other doesn't leave any App without a route.
 
-During the migration the HTTPProxy routes use the certificates that cert-manager issues for the nginx Ingress, so no certificate is reissued. When you turn `contour_migration` off on a Contour Rack, the next deploy of each App removes its nginx Ingress and the HTTPProxy takes over its certificates.
+During the migration the HTTPProxy routes use the certificates that cert-manager issues for the nginx Ingress, so no certificate is reissued. When you turn `contour_migration` off on a Contour Rack, the next deploy of each App removes its nginx Ingress and takes over its certificates, keeping the existing secrets, so no certificate is reissued then either.
 
 ## Default Value
 
@@ -37,7 +37,11 @@ Then move the load balancer to Envoy:
 $ convox rack params set router_type=contour -r rackName
 ```
 
-To go back, set `router_type=nginx`: the nginx routes are still in place. When you're satisfied, finish the migration and redeploy every App once more, which removes its nginx Ingress:
+To go back, set `router_type=nginx`: the nginx routes are still in place.
+
+Connections that were open before the switch stay on nginx until they close, and a CDN or proxy in front of the Rack (Cloudflare, for example) can keep its connections to the origin open for minutes. nginx closes a connection after 75 seconds without a request, or after 1,000 requests. Before you finish the migration, check that nginx's access log (`/nginx-access-logs` in the Rack's system log group) has stopped receiving requests: once an App's nginx Ingress is gone, nginx answers its requests with 404.
+
+When you're satisfied, finish the migration and redeploy every App once more, which removes its nginx Ingress:
 
 ```bash
 $ convox rack params set contour_migration=false -r rackName
