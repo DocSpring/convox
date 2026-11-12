@@ -11,7 +11,7 @@
 	</filter>
 %{ if redact_mode != "" ~}
 
-	<filter rack.*.app.system.service.ingress-nginx rack.*.app.system.service.ingress-nginx-internal>
+	<filter rack.*.app.system.service.ingress-nginx rack.*.app.system.service.ingress-nginx-internal rack.*.app.system.service.envoy rack.*.app.system.service.envoy-internal>
 		@type record_modifier
 %{ if redact_mode == "all" ~}
 		prepare_value @r = /([?&#"])([^=&?#"\s]+)=[^&#"\s]*/; @f = lambda { |s| (s.is_a?(String) && s.include?("=")) ? s.gsub(@r, '\1\2=FILTERED') : s }
@@ -24,7 +24,10 @@
 	</filter>
 %{ endif ~}
 
-    <match rack.*.app.system.service.ingress-nginx>
+    # The public router's access lines (JSON, one per request) go to their own stream: nginx's, and Envoy's when
+    # router_type is contour (Contour writes them as JSON too). Its other lines go to service/<router>/<pod>.
+%{ for router, access_stream in { "ingress-nginx" = "/nginx-access-logs", "envoy" = "/envoy-access-logs" } ~}
+    <match rack.*.app.system.service.${router}>
       @type rewrite_tag_filter
       <rule>
         key log
@@ -39,7 +42,7 @@
       </rule>
     </match>
 
-    <match rack.*.app.system.service.ingress-nginx.access>
+    <match rack.*.app.system.service.${router}.access>
       @type copy
       <store>
         @type cloudwatch_logs
@@ -47,7 +50,7 @@
         auto_create_stream true
         retention_in_days ${access_log_retention}
         log_group_name_key group_name
-        log_stream_name "/nginx-access-logs"
+        log_stream_name "${access_stream}"
         message_keys log
 
         <buffer>
@@ -76,6 +79,7 @@
 %{ endfor ~}
 %{ endif ~}
     </match>
+%{ endfor ~}
 
 	<match ${app_cloudwatch_disable ? "rack.*.app.system.**" : "**"}>
 		@type copy

@@ -8,6 +8,40 @@ locals {
 # which with contour_migration is before any app has rendered an HTTPProxy, not at the switch.
 locals {
   contour_installed = var.router_type == "contour" || var.contour_migration
+
+  # Envoy's access log as one JSON line per request, with nginx's field names where they mean the same thing, so
+  # fluentd stores it like nginx's (the /envoy-access-logs stream in the rack's system log group, after
+  # router_log_redact_params) and the same queries work on both. duration_ms is milliseconds (nginx's duration is
+  # seconds); path includes the query string. Envoy's own lines aren't JSON and go to service/envoy/<pod>.
+  envoy_access_log_fields = [
+    "time=%START_TIME%",
+    "remote_addr=%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%",
+    "x_forwarded_for=%REQ(X-FORWARDED-FOR)%",
+    "request_id=%REQ(X-REQUEST-ID)%",
+    "status=%RESPONSE_CODE%",
+    "response_flags=%RESPONSE_FLAGS%",
+    "vhost=%REQ(:AUTHORITY)%",
+    "method=%REQ(:METHOD)%",
+    "path=%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+    "request_proto=%PROTOCOL%",
+    "request_length=%BYTES_RECEIVED%",
+    "bytes_sent=%BYTES_SENT%",
+    "duration_ms=%DURATION%",
+    "upstream_service_time=%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+    "upstream_host=%UPSTREAM_HOST%",
+    "upstream_cluster=%UPSTREAM_CLUSTER%",
+    "http_referrer=%REQ(REFERER)%",
+    "http_user_agent=%REQ(USER-AGENT)%",
+  ]
+
+  # fluentd keeps a container's lines when its pod has system=convox and a service label (the namespace already has
+  # app and rack labels).
+  envoy_values = {
+    configInline = {
+      accesslog-format = "json"
+      json-fields      = local.envoy_access_log_fields
+    }
+  }
 }
 
 resource "null_resource" "contour_cleanup" {
@@ -42,6 +76,10 @@ resource "helm_release" "contour" {
   create_namespace = false
   timeout          = 3600
   wait             = true
+
+  values = [yamlencode(merge(local.envoy_values, {
+    envoy = { podLabels = { system = "convox", service = "envoy" } }
+  }))]
 
   set {
     name  = "contour.ingressClass.name"
@@ -229,6 +267,10 @@ resource "helm_release" "contour_internal" {
   create_namespace = false
   timeout          = 3600
   wait             = true
+
+  values = [yamlencode(merge(local.envoy_values, {
+    envoy = { podLabels = { system = "convox", service = "envoy-internal" } }
+  }))]
 
   set {
     name  = "contour.ingressClass.name"
