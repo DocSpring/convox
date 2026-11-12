@@ -635,7 +635,8 @@ resource "kubernetes_ingress_v1" "kubernetes" {
 }
 
 resource "kubectl_manifest" "api_httpproxy" {
-  count     = var.router_type == "contour" ? 1 : 0
+  # private_api: no public route to the API on Contour either
+  count     = var.router_type == "contour" && !var.private_api ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: projectcontour.io/v1
     kind: HTTPProxy
@@ -670,7 +671,8 @@ resource "kubectl_manifest" "api_httpproxy" {
 }
 
 resource "kubectl_manifest" "api_certificate" {
-  count     = var.router_type == "contour" ? 1 : 0
+  # private_api: no public route to the API on Contour either
+  count     = var.router_type == "contour" && !var.private_api ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: cert-manager.io/v1
     kind: Certificate
