@@ -74,7 +74,7 @@ var awsKnownParams = map[string]bool{
 	"idle_timeout":      true, "image": true,
 	"imds_http_hop_limit": true, "imds_http_tokens": true,
 	"pod_security_standard": true, "pod_security_mode": true,
-	"imds_tags_enable": true, "internal_router": true, "contour_internal_tls": true,
+	"imds_tags_enable": true, "internal_router": true, "contour_internal_tls": true, "contour_migration": true,
 	"pod_imds_block_enabled": true, "network_policy_enable": true,
 	"internet_gateway_id": true, "k8s_version": true,
 	"karpenter_ami_alias": true, "karpenter_arch": true, "karpenter_auth_mode": true,
@@ -225,6 +225,7 @@ var boolParams = map[string]bool{
 	"network_policy_enable":             true,
 	"internal_router":                   true,
 	"contour_internal_tls":              true,
+	"contour_migration":                 true,
 	"karpenter_consolidation_enabled":   true,
 	"keda_enable":                       true,
 	"pod_identity_agent_enable":         true,
@@ -604,6 +605,7 @@ var paramGroups = map[string]map[string]bool{
 		"idle_timeout":            true,
 		"internal_router":         true,
 		"contour_internal_tls":    true,
+		"contour_migration":       true,
 		"nginx_additional_config": true,
 		"nginx_image":             true,
 		"proxy_protocol":          true,
@@ -2395,12 +2397,17 @@ func validateAndMutateParams(params map[string]string, provider string, currentP
 	if currentRouterType == "" || currentRouterType == "null" {
 		currentRouterType = "nginx"
 	}
-	if params["router_type"] != "" && params["router_type"] != currentRouterType {
+	effectiveContourMigration := currentParams["contour_migration"]
+	if v, ok := params["contour_migration"]; ok {
+		effectiveContourMigration = v
+	}
+	if params["router_type"] != "" && params["router_type"] != currentRouterType && effectiveContourMigration != "true" {
 		fmt.Fprintf(os.Stderr, "WARNING: Changing router_type requires redeploying all apps.\n")
 		fmt.Fprintf(os.Stderr, "Apps will lose connectivity until their next deployment.\n")
-		if params["router_type"] == "contour" {
-			fmt.Fprintf(os.Stderr, "WARNING: Router access logs will use Envoy default format. The access_log_retention_in_days param will not apply until a follow-up fluentd update.\n")
-		}
+		fmt.Fprintf(os.Stderr, "To switch without downtime, set contour_migration=true first and redeploy every app.\n")
+	}
+	if params["router_type"] == "contour" && currentRouterType != "contour" {
+		fmt.Fprintf(os.Stderr, "WARNING: Router access logs will use Envoy default format. The access_log_retention_in_days param will not apply until a follow-up fluentd update.\n")
 	}
 
 	effectivePodSecurityStandard := currentParams["pod_security_standard"]

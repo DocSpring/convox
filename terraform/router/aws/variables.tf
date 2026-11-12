@@ -103,6 +103,11 @@ variable "router_type" {
   default = "nginx"
 }
 
+variable "contour_migration" {
+  type    = bool
+  default = false
+}
+
 variable "contour_cpu_request" {
   type    = string
   default = "100m"

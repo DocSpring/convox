@@ -362,6 +362,7 @@ module "rack" {
   vpa_enable                                = var.vpa_enable
   webhook_signing_key                       = var.webhook_signing_key
   router_type                               = var.router_type
+  contour_migration                         = var.contour_migration
   pod_security_standard                     = var.pod_security_standard
   pod_security_mode                         = var.pod_security_mode
   cert_duration                             = var.cert_duration

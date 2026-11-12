@@ -24,6 +24,7 @@ locals {
     contour_cpu_request                       = var.contour_cpu_request
     contour_internal_tls                      = var.contour_internal_tls
     contour_memory_request                    = var.contour_memory_request
+    contour_migration                         = var.contour_migration
     convox_domain_tls_cert_disable            = var.convox_domain_tls_cert_disable
     convox_rack_domain                        = var.convox_rack_domain
     coredns_version                           = var.coredns_version
@@ -198,6 +199,7 @@ locals {
     contour_cpu_request                       = "100m"
     contour_internal_tls                      = "true"
     contour_memory_request                    = "128Mi"
+    contour_migration                         = "false"
     convox_domain_tls_cert_disable            = "false"
     convox_rack_domain                        = ""
     coredns_version                           = "v1.14.3-eksbuild.3"

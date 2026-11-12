@@ -326,6 +326,11 @@ variable "router_type" {
   default = "nginx"
 }
 
+variable "contour_migration" {
+  type    = bool
+  default = false
+}
+
 variable "pod_security_standard" {
   type    = string
   default = ""

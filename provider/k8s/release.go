@@ -757,80 +757,61 @@ func (p *Provider) releaseTemplateCA(a *structs.App, ca *v1.Secret) ([]byte, err
 	return data, nil
 }
 
+// releaseTemplateIngress renders an app's public routes. While contour_migration is on, every app gets both an nginx
+// Ingress and a Contour HTTPProxy, whichever router_type is active, so the router Service can move between nginx and
+// Envoy without an app losing its route.
 func (p *Provider) releaseTemplateIngress(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions) ([]byte, error) {
+	if p.ContourMigration {
+		ingresses, err := p.releaseTemplateNginxIngress(a, ss, opts, "nginx", "app/ingress")
+		if err != nil {
+			return nil, err
+		}
+		proxies, err := p.releaseTemplateHTTPProxyCore(a, ss, opts, p.ProxyProtocol, "contour", false, true)
+		if err != nil {
+			return nil, err
+		}
+		return joinManifests(ingresses, proxies), nil
+	}
+
 	if p.RouterType == "contour" {
 		return p.releaseTemplateHTTPProxy(a, ss, opts)
 	}
 
-	idles, err := p.Engine.AppIdles(a.Name)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	items := [][]byte{}
-
-	for i := range ss {
-		s := ss[i]
-		ans, err := p.Engine.IngressAnnotations(s.Certificate.Duration)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		if s.Certificate.Id != "" {
-			keys := []string{}
-			for k := range ans {
-				keys = append(keys, k)
-			}
-			for _, k := range keys {
-				if strings.HasPrefix(k, "cert-manager.io") {
-					delete(ans, k)
-				}
-			}
-
-			data, err := p.releaseTemplateCertSecret(a, s)
-			if err != nil {
-				return nil, err
-			}
-			items = append(items, data)
-		}
-
-		customAns := s.IngressAnnotationsMap()
-		reservedAns := p.reservedNginxAnnotations()
-
-		for k, v := range customAns {
-			if !reservedAns[k] {
-				ans[k] = v
-			}
-		}
-
-		params := map[string]interface{}{
-			"Annotations":                ans,
-			"App":                        a.Name,
-			"Class":                      p.Engine.IngressClass(),
-			"ConvoxDomainTLSCertDisable": !p.ConvoxDomainTLSCertDisable,
-			"Host":                       p.ServiceHost(a.Name, s),
-			"Idles":                      common.DefaultBool(opts.Idle, idles),
-			"Namespace":                  p.AppNamespace(a.Name),
-			"Rack":                       p.Name,
-			"Service":                    s,
-		}
-
-		data, err := p.RenderTemplate("app/ingress", params)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		items = append(items, data)
-	}
-
-	return bytes.Join(items, []byte("---\n")), nil
+	return p.releaseTemplateNginxIngress(a, ss, opts, p.Engine.IngressClass(), "app/ingress")
 }
 
+// releaseTemplateIngressInternal renders an app's internal routes, both kinds while contour_migration is on.
 func (p *Provider) releaseTemplateIngressInternal(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions) ([]byte, error) {
+	if p.ContourMigration {
+		ingresses, err := p.releaseTemplateNginxIngress(a, ss, opts, "nginx-internal", "app/ingress-internal")
+		if err != nil {
+			return nil, err
+		}
+		proxies, err := p.releaseTemplateHTTPProxyInternalCore(a, ss, opts, "contour-internal", true)
+		if err != nil {
+			return nil, err
+		}
+		return joinManifests(ingresses, proxies), nil
+	}
+
 	if p.RouterType == "contour" {
 		return p.releaseTemplateHTTPProxyInternal(a, ss, opts)
 	}
 
+	return p.releaseTemplateNginxIngress(a, ss, opts, p.Engine.IngressInternalClass(), "app/ingress-internal")
+}
+
+func joinManifests(parts ...[]byte) []byte {
+	items := [][]byte{}
+	for _, part := range parts {
+		if len(bytes.TrimSpace(part)) > 0 {
+			items = append(items, part)
+		}
+	}
+	return bytes.Join(items, []byte("---\n"))
+}
+
+func (p *Provider) releaseTemplateNginxIngress(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions, class, template string) ([]byte, error) {
 	idles, err := p.Engine.AppIdles(a.Name)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -840,7 +821,6 @@ func (p *Provider) releaseTemplateIngressInternal(a *structs.App, ss manifest.Se
 
 	for i := range ss {
 		s := ss[i]
-
 		ans, err := p.Engine.IngressAnnotations(s.Certificate.Duration)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -876,7 +856,7 @@ func (p *Provider) releaseTemplateIngressInternal(a *structs.App, ss manifest.Se
 		params := map[string]interface{}{
 			"Annotations":                ans,
 			"App":                        a.Name,
-			"Class":                      p.Engine.IngressInternalClass(),
+			"Class":                      class,
 			"ConvoxDomainTLSCertDisable": !p.ConvoxDomainTLSCertDisable,
 			"Host":                       p.ServiceHost(a.Name, s),
 			"Idles":                      common.DefaultBool(opts.Idle, idles),
@@ -885,7 +865,7 @@ func (p *Provider) releaseTemplateIngressInternal(a *structs.App, ss manifest.Se
 			"Service":                    s,
 		}
 
-		data, err := p.RenderTemplate("app/ingress-internal", params)
+		data, err := p.RenderTemplate(template, params)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -897,19 +877,26 @@ func (p *Provider) releaseTemplateIngressInternal(a *structs.App, ss manifest.Se
 }
 
 func (p *Provider) releaseTemplateHTTPProxy(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions) ([]byte, error) {
-	return p.releaseTemplateHTTPProxyCore(a, ss, opts, p.ProxyProtocol, p.Engine.IngressClass(), false)
+	return p.releaseTemplateHTTPProxyCore(a, ss, opts, p.ProxyProtocol, p.Engine.IngressClass(), false, false)
 }
 
 func (p *Provider) releaseTemplateHTTPProxyInternal(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions) ([]byte, error) {
+	return p.releaseTemplateHTTPProxyInternalCore(a, ss, opts, p.Engine.IngressInternalClass(), false)
+}
+
+func (p *Provider) releaseTemplateHTTPProxyInternalCore(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions, ingressClassName string, nginxOwnsCerts bool) ([]byte, error) {
 	for i := range ss {
 		if len(ss[i].Domains) > 0 {
 			log.Printf("WARNING: service %q has custom domains on the internal router; HTTP01 certificate challenges require the domain to be publicly reachable", ss[i].Name)
 		}
 	}
-	return p.releaseTemplateHTTPProxyCore(a, ss, opts, false, p.Engine.IngressInternalClass(), true)
+	return p.releaseTemplateHTTPProxyCore(a, ss, opts, false, ingressClassName, true, nginxOwnsCerts)
 }
 
-func (p *Provider) releaseTemplateHTTPProxyCore(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions, proxyProtocol bool, ingressClassName string, internal bool) ([]byte, error) {
+// releaseTemplateHTTPProxyCore renders Contour HTTPProxy routes. With nginxOwnsCerts (contour_migration), the app's
+// nginx Ingress is rendered too and cert-manager's ingress-shim owns the cert-<service> Certificates through it, so the
+// HTTPProxy uses those secrets and renders no Certificate or certificate Secret of its own.
+func (p *Provider) releaseTemplateHTTPProxyCore(a *structs.App, ss manifest.Services, opts structs.ReleasePromoteOptions, proxyProtocol bool, ingressClassName string, internal bool, nginxOwnsCerts bool) ([]byte, error) {
 	idles, err := p.Engine.AppIdles(a.Name)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -928,7 +915,7 @@ func (p *Provider) releaseTemplateHTTPProxyCore(a *structs.App, ss manifest.Serv
 	for i := range ss {
 		s := ss[i]
 
-		if s.Certificate.Id != "" {
+		if s.Certificate.Id != "" && !nginxOwnsCerts {
 			data, err := p.releaseTemplateCertSecret(a, s)
 			if err != nil {
 				return nil, err
@@ -943,7 +930,7 @@ func (p *Provider) releaseTemplateHTTPProxyCore(a *structs.App, ss manifest.Serv
 			certIssuer = "self-signed"
 		}
 
-		if s.Certificate.Id == "" && convoxDomainTLS {
+		if s.Certificate.Id == "" && convoxDomainTLS && !nginxOwnsCerts {
 			certParams := map[string]interface{}{
 				"App":          a.Name,
 				"CertDuration": s.Certificate.Duration,

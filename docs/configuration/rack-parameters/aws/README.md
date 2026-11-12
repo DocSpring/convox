@@ -39,6 +39,7 @@ Parameters are grouped by category below. Every parameter links to its own refer
 |:-------------------------------------|:-------------------------------------------------------------------------|
 | [contour_cpu_request](/configuration/rack-parameters/aws/contour_cpu_request) | Sets the CPU request for the Contour control plane. Applies only when `router_type=contour`. |
 | [contour_internal_tls](/configuration/rack-parameters/aws/contour_internal_tls) | Encrypts traffic between the internal Contour router and services using a rack-issued certificate. Applies only when `router_type=contour`. |
+| [contour_migration](/configuration/rack-parameters/aws/contour_migration) | Gives every App routes on both nginx and Contour, so `router_type` can be switched without downtime. |
 | [contour_memory_request](/configuration/rack-parameters/aws/contour_memory_request) | Sets the memory request for the Contour control plane. Raise on racks with many routes. Applies only when `router_type=contour`. |
 | [envoy_cpu_request](/configuration/rack-parameters/aws/envoy_cpu_request) | Sets the CPU request for the Envoy data plane. Applies only when `router_type=contour`. |
 | [envoy_memory_request](/configuration/rack-parameters/aws/envoy_memory_request) | Sets the memory request for the Envoy data plane. Applies only when `router_type=contour`. |

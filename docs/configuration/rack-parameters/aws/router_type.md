@@ -15,7 +15,7 @@ The `router_type` parameter selects the ingress controller for the Rack: `nginx`
 
 Changing `router_type` on a Rack that already has running Apps takes every App offline until each one is redeployed. When you switch the controller, your existing Apps do not carry over automatically: they stop serving public traffic the moment the switch applies, and each App stays unreachable externally until you run a deploy for it. Run a separate deploy per App. There is no zero-downtime migration yet. Switching back from `contour` to `nginx` has the same cost: every App must be redeployed again.
 
-Because of this, use `contour` only on brand-new Racks (set it before deploying any Apps, so there is nothing to migrate) or on staging and test Racks where you can take the Apps down and redeploy them. Do not flip a production Rack to `contour` expecting a quick, low-risk trial.
+To switch an existing Rack without downtime, use [`contour_migration`](/configuration/rack-parameters/aws/contour_migration). Without it, use `contour` only on brand-new Racks (set it before deploying any Apps, so there is nothing to migrate) or on staging and test Racks where you can take the Apps down and redeploy them. Do not flip a production Rack to `contour` expecting a quick, low-risk trial.
 
 See [Ingress Router](/configuration/ingress-router) for the full migration explanation.
 

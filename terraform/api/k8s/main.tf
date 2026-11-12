@@ -516,7 +516,14 @@ resource "kubernetes_service" "api" {
 }
 
 locals {
-  ingress_annotations = var.router_type == "contour" ? {
+  # Contour serves the API (an HTTPProxy) when it's the router, and while contour_migration prepares a switch to it.
+  # During the migration the nginx Ingress keeps its cert-manager annotations, so cert-manager's ingress-shim still
+  # owns the api-certificate Certificate and the HTTPProxy uses its secret; Contour takes the Certificate over once
+  # the migration is turned off.
+  contour_serves_api = var.router_type == "contour" || var.contour_migration
+  contour_owns_certs = var.router_type == "contour" && !var.contour_migration
+
+  ingress_annotations = local.contour_owns_certs ? {
     for k, v in var.annotations : k => v
     if length(regexall("^cert-manager\\.io/", k)) == 0
   } : var.annotations
@@ -614,7 +621,7 @@ resource "kubernetes_ingress_v1" "kubernetes" {
 }
 
 resource "kubectl_manifest" "api_httpproxy" {
-  count     = var.router_type == "contour" ? 1 : 0
+  count     = local.contour_serves_api ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: projectcontour.io/v1
     kind: HTTPProxy
@@ -649,7 +656,7 @@ resource "kubectl_manifest" "api_httpproxy" {
 }
 
 resource "kubectl_manifest" "api_certificate" {
-  count     = var.router_type == "contour" ? 1 : 0
+  count     = local.contour_owns_certs ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: cert-manager.io/v1
     kind: Certificate

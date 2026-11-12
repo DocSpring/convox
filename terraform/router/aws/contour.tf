@@ -3,8 +3,15 @@ locals {
   contour_envoy_image_tag = "v1.38.8@sha256:9b6dd34943ea3bd431986e6bb1c56b4f63d2ab8bf2d74bfef7fae96101b62274"
 }
 
+# Contour is installed when it's the router, and also while contour_migration prepares a switch to it, so that apps get
+# their HTTPProxy routes before the router Service moves to Envoy. The cleanup runs when Contour is first installed,
+# which with contour_migration is before any app has rendered an HTTPProxy, not at the switch.
+locals {
+  contour_installed = var.router_type == "contour" || var.contour_migration
+}
+
 resource "null_resource" "contour_cleanup" {
-  count = var.router_type == "contour" ? 1 : 0
+  count = local.contour_installed ? 1 : 0
 
   provisioner "local-exec" {
     command = <<-EOT
@@ -23,7 +30,7 @@ resource "null_resource" "contour_cleanup" {
 }
 
 resource "helm_release" "contour" {
-  count = var.router_type == "contour" ? 1 : 0
+  count = local.contour_installed ? 1 : 0
 
   depends_on = [null_resource.contour_cleanup]
 
@@ -210,7 +217,7 @@ resource "helm_release" "contour" {
 }
 
 resource "helm_release" "contour_internal" {
-  count = var.router_type == "contour" && var.internal_router ? 1 : 0
+  count = local.contour_installed && var.internal_router ? 1 : 0
 
   depends_on = [helm_release.contour]
 

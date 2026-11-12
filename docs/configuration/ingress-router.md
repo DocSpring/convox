@@ -28,6 +28,8 @@ $ convox rack params set router_type=contour -r rackName
 
 ## Switching an existing rack
 
+To switch without downtime, set [`contour_migration=true`](/configuration/rack-parameters/aws/contour_migration) first and redeploy every App, so each one has routes on both controllers, then change `router_type`. The rest of this section describes switching without it.
+
 > **Read this before switching `router_type` on a Rack that already has running Apps.**
 >
 > Switching `router_type` on a Rack with running Apps takes EVERY App offline until you redeploy it. The instant the switch completes, your Apps stop serving external traffic.
@@ -85,6 +87,7 @@ On a `contour` Rack, Convox does not collect Envoy's access or error logs, so th
 
 - [`router_type`](/configuration/rack-parameters/aws/router_type)
 - [`contour_internal_tls`](/configuration/rack-parameters/aws/contour_internal_tls)
+- [`contour_migration`](/configuration/rack-parameters/aws/contour_migration)
 - [`contour_cpu_request`](/configuration/rack-parameters/aws/contour_cpu_request)
 - [`contour_memory_request`](/configuration/rack-parameters/aws/contour_memory_request)
 - [`envoy_cpu_request`](/configuration/rack-parameters/aws/envoy_cpu_request)
