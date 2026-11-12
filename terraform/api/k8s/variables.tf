@@ -155,6 +155,11 @@ variable "router_type" {
   default = "nginx"
 }
 
+variable "contour_migration" {
+  type    = bool
+  default = false
+}
+
 variable "cert_duration" {
   type    = string
   default = ""

@@ -37,6 +37,7 @@ module "k8s" {
   cost_tracking_history_days      = var.cost_tracking_history_days
   seccomp_default_enabled         = var.seccomp_default_enabled
   router_type                     = var.router_type
+  contour_migration               = var.contour_migration
   cert_duration                   = var.cert_duration
   karpenter_enabled               = var.karpenter_enabled
   system_readonly_rootfs_enabled  = var.system_readonly_rootfs_enabled
@@ -94,6 +95,7 @@ module "k8s" {
     VPA_ENABLED                               = var.vpa_enable
     FEATURE_GATES                             = var.api_feature_gates
     ROUTER_TYPE                               = var.router_type
+    CONTOUR_MIGRATION                         = var.contour_migration
     PROXY_PROTOCOL                            = var.proxy_protocol
     POD_IMDS_BLOCK_ENABLED                    = var.pod_imds_block_enabled
     NETWORK_POLICY_ENABLED                    = var.network_policy_enable

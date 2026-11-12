@@ -82,6 +82,7 @@ module "api" {
   webhook_signing_key                       = var.webhook_signing_key
   api_feature_gates                         = var.api_feature_gates
   router_type                               = var.router_type
+  contour_migration                         = var.contour_migration
   pod_security_standard                     = var.pod_security_standard
   pod_security_mode                         = var.pod_security_mode
   cert_duration                             = var.cert_duration
@@ -153,6 +154,7 @@ module "router" {
   whitelist                 = var.whitelist
   lbc_helm_id               = var.lbc_helm_id
   router_type               = var.router_type
+  contour_migration         = var.contour_migration
   contour_cpu_request       = var.contour_cpu_request
   contour_memory_request    = var.contour_memory_request
   envoy_cpu_request         = var.envoy_cpu_request
