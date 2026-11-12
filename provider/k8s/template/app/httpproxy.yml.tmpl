@@ -76,7 +76,7 @@ spec:
   ingressClassName: {{$.IngressClassName}}
   virtualhost:
     fqdn: {{ safe $d }}
-    {{- if or $.Service.Certificate.Id $.ConvoxDomainTLS}}
+    {{- if or $.Service.Certificate.Id $.DomainTLS}}
     tls:
       secretName: {{if $.Service.Certificate.Id}}{{ yamlScalar $.Service.Certificate.Id }}{{else}}cert-{{$.Service.Name}}-domains{{end}}
     {{- end}}

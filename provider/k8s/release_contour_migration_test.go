@@ -149,3 +149,27 @@ func TestReleaseTemplateIngressWithoutContourMigration(t *testing.T) {
 		require.Len(t, kinds["Certificate"], 2)
 	})
 }
+
+// convox_domain_tls_cert_disable only drops TLS for the rack's default host: custom domains keep it, as on nginx.
+func TestReleaseTemplateHTTPProxyCustomDomainTLSWithDefaultHostCertDisabled(t *testing.T) {
+	for _, migration := range []bool{false, true} {
+		p := contourMigrationProvider("contour", migration)
+		p.ConvoxDomainTLSCertDisable = true
+
+		data, err := p.releaseTemplateIngress(&structs.App{Name: "myapp"}, contourMigrationServices(), structs.ReleasePromoteOptions{})
+		require.NoError(t, err)
+		kinds := objectsByKind(renderedObjects(t, data))
+
+		require.Len(t, kinds["HTTPProxy"], 2)
+		require.Equal(t, "web", kinds["HTTPProxy"][0].Metadata.Name)
+		require.Empty(t, kinds["HTTPProxy"][0].Spec.VirtualHost.TLS.SecretName, "default host has no TLS")
+		require.Equal(t, "cert-web-domains", kinds["HTTPProxy"][1].Spec.VirtualHost.TLS.SecretName, "migration=%v", migration)
+
+		if migration {
+			require.Empty(t, kinds["Certificate"])
+		} else {
+			require.Len(t, kinds["Certificate"], 1)
+			require.Equal(t, "cert-web-domains", kinds["Certificate"][0].Metadata.Name)
+		}
+	}
+}

@@ -1,3 +1,4 @@
+{{- if .HostCert}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -28,8 +29,11 @@ spec:
   {{- end}}
   dnsNames:
   - {{ safe .Host }}
+{{- end}}
 {{- if .HasDomains}}
+{{- if .HostCert}}
 ---
+{{- end}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

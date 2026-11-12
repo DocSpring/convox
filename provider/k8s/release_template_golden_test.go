@@ -62,14 +62,14 @@ func goldenCases(p *Provider, m *manifest.Manifest, a *structs.App) []goldenCase
 		tr := translateNginxAnnotations(sc.IngressAnnotationsMap(), sc.Name)
 		cs = append(cs,
 			goldenCase{"httpproxy " + s.Name, "app/httpproxy", map[string]interface{}{
-				"Annotations": tr.Annotations, "App": a.Name, "BackendProtocol": contourBackendProtocol(sc.Port.Scheme), "ConvoxDomainTLS": true,
+				"Annotations": tr.Annotations, "App": a.Name, "BackendProtocol": contourBackendProtocol(sc.Port.Scheme), "ConvoxDomainTLS": true, "DomainTLS": true,
 				"Host": p.ServiceHost(a.Name, sc), "Idles": false, "IngressClassName": "contour", "Namespace": ns, "ProxyProtocol": true,
 				"Rack": "rack", "RateLimitRPS": tr.RateLimitRPS, "Service": sc, "TimeoutResponse": responseTimeout(tr.TimeoutResponse),
 				"TimeoutIdle": fmt.Sprintf("%ds", sc.Timeout), "WhitelistCIDRs": parseWhitelistCIDRs(sc.Whitelist),
 			}},
 			goldenCase{"certificate " + s.Name, "app/certificate", map[string]interface{}{
 				"App": a.Name, "CertDuration": s.Certificate.Duration, "CertIssuer": "letsencrypt", "HasDomains": len(s.Domains) > 0,
-				"Host": p.ServiceHost(a.Name, s), "Namespace": ns, "Service": s,
+				"Host": p.ServiceHost(a.Name, s), "HostCert": true, "Namespace": ns, "Service": s,
 			}},
 		)
 
