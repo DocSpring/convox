@@ -1,3 +1,10 @@
+{{- /*
+Like ingress-nginx, which these routes replace: Envoy closes an idle connection to a pod after 60 seconds (nginx's
+upstream-keepalive-timeout), so apps whose keep-alive timeout is longer close none that Envoy might still send a
+request on (Envoy's default is an hour, and a request sent as the app closes gets a 503). And a client can't set
+X-Forwarded-Host: nginx replaced it with the request's host, Envoy passes it on, and apps such as Rails read it as
+the host.
+*/ -}}
 apiVersion: projectcontour.io/v1
 kind: HTTPProxy
 metadata:
@@ -45,11 +52,15 @@ spec:
       {{- if .BackendProtocol}}
       protocol: {{.BackendProtocol}}
       {{- end}}
-    {{- if .Service.Timeout}}
     timeoutPolicy:
+      {{- if .Service.Timeout}}
       response: "{{.TimeoutResponse}}"
       idle: "{{.TimeoutIdle}}"
-    {{- end}}
+      {{- end}}
+      idleConnection: 60s
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     {{- if .RateLimitRPS}}
     rateLimitPolicy:
       local:
@@ -100,11 +111,15 @@ spec:
       {{- if $.BackendProtocol}}
       protocol: {{$.BackendProtocol}}
       {{- end}}
-    {{- if $.Service.Timeout}}
     timeoutPolicy:
+      {{- if $.Service.Timeout}}
       response: "{{$.TimeoutResponse}}"
       idle: "{{$.TimeoutIdle}}"
-    {{- end}}
+      {{- end}}
+      idleConnection: 60s
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     {{- if $.RateLimitRPS}}
     rateLimitPolicy:
       local:

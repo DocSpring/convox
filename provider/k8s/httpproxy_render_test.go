@@ -9,6 +9,7 @@ import (
 	"github.com/convox/convox/pkg/templater"
 	"github.com/convox/convox/provider/k8s/template"
 	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func httpProxyRenderParams(class string, proxyProtocol bool, whitelist []string, timeoutResponse string) map[string]interface{} {
@@ -151,4 +152,49 @@ func TestRenderTemplateHTTPProxyStreamingTimeout(t *testing.T) {
 	capped, err := p.RenderTemplate("app/httpproxy", httpProxyRenderParams("contour", true, nil, "120s"))
 	require.NoError(t, err)
 	require.Contains(t, string(capped), "response: 120s")
+}
+
+// Every route, with or without a timeout and for custom domains too, closes idle upstream connections after nginx's
+// 60 seconds and drops a client's X-Forwarded-Host, as ingress-nginx did.
+func TestRenderTemplateHTTPProxyUpstreamIdleAndForwardedHost(t *testing.T) {
+	p := Provider{Engine: &mock.TestEngine{}}
+	p.templater = templater.New(template.TemplatesFS)
+
+	for _, timeout := range []int{0, 60} {
+		params := httpProxyRenderParams("contour", true, nil, "infinity")
+		params["Service"] = manifest.Service{
+			Name:    "web",
+			Port:    manifest.ServicePortScheme{Port: 8080, Scheme: "http"},
+			Timeout: timeout,
+			Domains: []string{"app.example.com"},
+		}
+		out, err := p.RenderTemplate("app/httpproxy", params)
+		require.NoError(t, err)
+
+		docs := strings.Split(string(out), "\n---\n")
+		require.Len(t, docs, 2)
+		for _, doc := range docs {
+			var proxy struct {
+				Spec struct {
+					Routes []struct {
+						TimeoutPolicy        map[string]string `yaml:"timeoutPolicy"`
+						RequestHeadersPolicy struct {
+							Remove []string `yaml:"remove"`
+						} `yaml:"requestHeadersPolicy"`
+					} `yaml:"routes"`
+				} `yaml:"spec"`
+			}
+			require.NoError(t, yaml.Unmarshal([]byte(doc), &proxy), doc)
+			require.Len(t, proxy.Spec.Routes, 1)
+			route := proxy.Spec.Routes[0]
+			require.Equal(t, "60s", route.TimeoutPolicy["idleConnection"])
+			require.Equal(t, []string{"X-Forwarded-Host"}, route.RequestHeadersPolicy.Remove)
+			if timeout == 0 {
+				require.NotContains(t, route.TimeoutPolicy, "response")
+			} else {
+				require.Equal(t, "infinity", route.TimeoutPolicy["response"])
+				require.Equal(t, "60s", route.TimeoutPolicy["idle"])
+			}
+		}
+	}
 }

@@ -269,11 +269,15 @@ spec:
     enableWebsockets: true
     loadBalancerPolicy:
       strategy: Cookie
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: web
       port: 3000
     timeoutPolicy:
       idle: 120s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: web.myapp.example.org
@@ -303,11 +307,15 @@ spec:
     enableWebsockets: true
     loadBalancerPolicy:
       strategy: Cookie
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: web
       port: 3000
     timeoutPolicy:
       idle: 120s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: a.example.com
@@ -337,11 +345,15 @@ spec:
     enableWebsockets: true
     loadBalancerPolicy:
       strategy: Cookie
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: web
       port: 3000
     timeoutPolicy:
       idle: 120s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: '*.example.com'
@@ -1034,11 +1046,15 @@ spec:
   - conditions:
     - prefix: /
     enableWebsockets: true
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: db
       port: 5432
     timeoutPolicy:
       idle: 60s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: db.myapp.example.org
@@ -1378,11 +1394,15 @@ spec:
   - conditions:
     - prefix: /
     enableWebsockets: true
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: agent
       port: 0
     timeoutPolicy:
       idle: 60s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: agent.myapp.example.org
@@ -1675,12 +1695,16 @@ spec:
   - conditions:
     - prefix: /
     enableWebsockets: true
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: single
       port: 4000
       protocol: tls
     timeoutPolicy:
       idle: 60s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: single.myapp.internal.example.org
@@ -3377,11 +3401,15 @@ spec:
     enableWebsockets: true
     loadBalancerPolicy:
       strategy: Cookie
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: web
       port: 3000
     timeoutPolicy:
       idle: 120s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: web.myapp.example.org
@@ -3414,11 +3442,15 @@ spec:
     enableWebsockets: true
     loadBalancerPolicy:
       strategy: Cookie
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: web
       port: 3000
     timeoutPolicy:
       idle: 120s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: a.example.com
@@ -3451,11 +3483,15 @@ spec:
     enableWebsockets: true
     loadBalancerPolicy:
       strategy: Cookie
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: web
       port: 3000
     timeoutPolicy:
       idle: 120s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: '*.example.com'
@@ -4184,11 +4220,15 @@ spec:
   - conditions:
     - prefix: /
     enableWebsockets: true
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: db
       port: 5432
     timeoutPolicy:
       idle: 60s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: db.myapp.example.org
@@ -4558,11 +4598,15 @@ spec:
   - conditions:
     - prefix: /
     enableWebsockets: true
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: agent
       port: 0
     timeoutPolicy:
       idle: 60s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: agent.myapp.example.org
@@ -4883,12 +4927,16 @@ spec:
   - conditions:
     - prefix: /
     enableWebsockets: true
+    requestHeadersPolicy:
+      remove:
+      - X-Forwarded-Host
     services:
     - name: single
       port: 4000
       protocol: tls
     timeoutPolicy:
       idle: 60s
+      idleConnection: 60s
       response: infinity
   virtualhost:
     fqdn: single.myapp.internal.example.org
